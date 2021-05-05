@@ -5,14 +5,52 @@ const path = require("path");
 const querystring = require("qs");
 var http = require('http');
 let Record = require('../record');
+const fs = require('fs');
+
+//create a new app
+const app  = express();
+// view engine setup
+app.set('views', path.join(__dirname, '../views'));
+app.set('view engine', 'hbs');
+
+//using the blody parser middleware
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+//app.use(express.json());
+
+
+//get the port from the user or set the default port
+const HTTP_PORT = process.env.HTTP_PORT || 3000;
+// app server configurations
+app.listen(HTTP_PORT,()=>{
+    console.log(`listening on port ${HTTP_PORT}`);
+})
 
 
 // create a new blockchain instance
 const blockchain = new Blockchain();
 
 var peers = [];
+var records = [];
 
-const records = [];
+//restoring chain
+try {
+    if(fs.existsSync('savedJSON/blockchain.json')) {
+        fs.readFile('savedJSON/blockchain.json', 'utf-8', (err, data) => {
+            if (err) {
+                throw err;
+            }
+            blockchain.chain = JSON.parse(data.toString());
+            console.log('Chain restored');
+
+        });
+    } else {
+        console.log('Chain not found');
+    }
+} catch (err) {
+    console.error(err);
+}
+
 
 function broadcastChain() {
     peers.forEach(peer => {
@@ -47,21 +85,19 @@ function broadcastChain() {
         req.end();
 
     });
+}
+function saveChainLocal(){
+    fs.writeFile('savedJSON/blockchain.json', JSON.stringify(blockchain.chain), (err) => {
+        if (err) {
+            throw err;
+        }
+    });
 
 }
 
-//create a new app
-const app  = express();
 
 
-// view engine setup
-app.set('views', path.join(__dirname, '../views'));
-app.set('view engine', 'hbs');
 
-//using the blody parser middleware
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-//app.use(express.json());
 
 
 
@@ -98,6 +134,8 @@ app.get('/peers',(req,res)=>{
 app.post('/mine',(req,res)=>{
     const block = blockchain.addBlock(req.body.data);
     broadcastChain();
+    saveChainLocal();
+
     console.log(blockchain.chain);
     records.push(new Record("POST","/mine",req.connection.remoteAddress.split(":")[3],req.body.data));
     res.redirect('/chain');
@@ -119,10 +157,3 @@ app.post('/replaceChain',(req,res)=>{
     res.redirect('/');
 });
 
-
-//get the port from the user or set the default port
-const HTTP_PORT = process.env.HTTP_PORT || 3000;
-// app server configurations
-app.listen(HTTP_PORT,()=>{
-    console.log(`listening on port ${HTTP_PORT}`);
-})

@@ -14,14 +14,13 @@ class Block{
         return `Block - 
         Index     : ${this.index}
         Timestamp : ${this.timestamp}
-        Last Hash : ${this.lastHash.substring(0,10)}
-        Hash      : ${this.hash.substring(0,10)}
+        Last Hash : ${this.lastHash}
+        Hash      : ${this.hash}
         Data      : ${this.data}`;
     }
 
     static firstBlock(){
-        var i = 0;
-        return new this('first block','----','firstBlock-hash',[],i);
+        return new this('first block','----','firstBlock-hash',[],0);
     }
 
     static hash(timestamp,lastHash,data){

@@ -4,6 +4,7 @@
   "description": "",
   "main": "blockchain.js",
   "scripts": {
+    "start": "node ./app",
     "dev": "nodemon ./app"
   },
   "keywords": [],
