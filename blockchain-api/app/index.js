@@ -1,15 +1,19 @@
 const express = require('express');
-const Blockchain = require('../blockchain');
+const Blockchain = require('../chain/blockchain');
 const bodyParser = require('body-parser');
 const path = require("path");
 const querystring = require("qs");
-var http = require('http');
+const http = require('http');
 let Record = require('../record');
 const fs = require('fs');
+const  Wallet = require("../transaction_module/wallet")
+const TransactionPool = require('../transaction_module/unspentTransactions');
+
 
 //create a new app
 const app  = express();
 // view engine setup
+
 app.set('views', path.join(__dirname, '../views'));
 app.set('view engine', 'hbs');
 
@@ -29,6 +33,14 @@ app.listen(HTTP_PORT,()=>{
 
 // create a new blockchain instance
 const blockchain = new Blockchain();
+// create a new wallet
+const wallet = new Wallet();
+
+// create a new transaction pool which will be later
+// decentralized and synchronized using the peer to peer server
+const transactionPool = new TransactionPool();
+
+
 
 var peers = [];
 var records = [];
@@ -51,7 +63,38 @@ try {
     console.error(err);
 }
 
+function broadcastTransaction(transaction) {
+    peers.forEach(peer => {
+        console.log(peer);
+        var ip = peer.split(':')[0];
+        var port = peer.split(':')[1];
+        var data = JSON.stringify(transaction);
 
+
+        var options = {
+            host: ip,
+            port: port,
+            path: '/broadcastedTransaction',
+            method: 'POST',
+            headers: {
+                //'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(data)
+            }
+        };
+        var req = http.request(options, function(res)
+        {
+            res.setEncoding('utf8');
+            res.on('data', function (chunk) {
+                console.log("statusna koda: " + res.statusCode);
+            });
+        });
+
+        req.write(data);
+        req.end();
+
+    });
+}
 function broadcastChain() {
     peers.forEach(peer => {
         console.log(peer);
@@ -130,6 +173,11 @@ app.get('/peers',(req,res)=>{
     res.json(peers);
 });
 
+app.get('/newOut',(req,res)=>{
+    records.push(new Record("GET","/chain",req.connection.remoteAddress.split(":")[3],"-"));
+    res.json(blockchain.chain);
+});
+
 //POST
 app.post('/mine',(req,res)=>{
     const block = blockchain.addBlock(req.body.data);
@@ -156,4 +204,18 @@ app.post('/replaceChain',(req,res)=>{
    }
     res.redirect('/');
 });
+//---------------------------------------------------------------------------------------------------------------
+
+app.post('/transact',(req,res)=>{
+    const { recipient, amount } = req.body;
+    const transaction = wallet.createTransaction(recipient, amount,blockchain,transactionPool);
+    console.log("transaction: "+transaction);
+    broadcastTransaction(transaction);
+    res.redirect('/transactions');
+});
+
+// get public key
+app.get('/public-key',(req,res)=>{
+    res.json({publicKey: wallet.publicKey});
+})
 

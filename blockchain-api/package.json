@@ -2,7 +2,7 @@
   "name": "BLOCKCHAIN_test",
   "version": "1.0.0",
   "description": "",
-  "main": "blockchain.js",
+  "main": "chain/blockchain.js",
   "scripts": {
     "start": "node ./app",
     "dev": "nodemon ./app"
@@ -11,8 +11,10 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "elliptic": "^6.5.4",
     "jest": "^26.6.3",
-    "nodemon": "^2.0.7"
+    "nodemon": "^2.0.7",
+    "uuid": "^8.3.2"
   },
   "dependencies": {
     "body-parser": "^1.19.0",
