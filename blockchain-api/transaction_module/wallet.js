@@ -1,6 +1,12 @@
-const KeyPair = require('../keyPair');
 const { INITIAL_BALANCE } = require('../config');
 const Transaction = require('./transaction');
+var EC = require('elliptic').ec;
+// we use the same preset of bitcoin, but should work with the other ones too
+var ec = new EC('secp256k1');
+
+
+const SHA256 = require('crypto-js/sha256');
+const fs = require("fs");
 
 class Wallet{
     /**
@@ -10,7 +16,7 @@ class Wallet{
      */
     constructor(){
         this.balance = INITIAL_BALANCE;
-        this.keyPair = KeyPair.getPair();
+        this.keyPair = ec.genKeyPair()
         this.publicKey = this.keyPair.getPublic().encode('hex');
     }
 
@@ -19,6 +25,23 @@ class Wallet{
         publicKey: ${this.publicKey.toString()}
         balance  : ${this.balance}`
     }
+
+    static generateKeyPair(){
+        return  ec.genKeyPair();
+    }
+    static hash(data){
+        return SHA256(JSON.stringify(data)).toString();
+    }
+    /**
+     * verify the transaction signature to
+     * check its validity using the method provided
+     * in EC module
+     */
+
+    static verifySignature(publicKey,signature,dataHash){
+        return ec.keyFromPublic(publicKey,'hex').verify(dataHash,signature);
+    }
+
 
     sign(dataHash){
         return this.keyPair.sign(dataHash);
@@ -32,7 +55,8 @@ class Wallet{
 
     createTransaction(recipient, amount,blockchain, transactionPool){
 
-        this.balance = this.calculateBalance(blockchain);
+        //this.balance = this.calculateBalance(blockchain);
+        this.balance = 50;
 
         if(amount > this.balance){
             console.log(`Amount: ${amount} exceeds the current balance: ${this.balance}`);
@@ -46,10 +70,12 @@ class Wallet{
             transaction.update(this,recipient,amount)
         }
         else{
+
             // creates a new transaction and updates the transaction pool
             transaction = Transaction.newTransaction(this,recipient,amount);
             transactionPool.updateOrAddTransaction(transaction);
         }
+        console.log("?????")
 
         return transaction;
 

@@ -4,7 +4,7 @@ const {MINING_REWARD} = require('../config');
 class Transaction{
     constructor(){
         this.id = "TODO ?";
-        this.input = null;
+        this.input = [];
         this.outputs = [];
     }
 
