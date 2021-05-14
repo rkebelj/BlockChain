@@ -20,7 +20,16 @@ class Block{
     }
 
     static firstBlock(){
-        return new this('first block','----','firstBlock-hash',[],0);
+        return new this('first block','----','firstBlock-hash',
+            {
+
+                    id: "",
+                    signature: "",
+                    txIns: [],
+                    txOuts: [],
+                    senderAddress: ""
+                }
+            ,0);
     }
 
     static hash(timestamp,lastHash,data){

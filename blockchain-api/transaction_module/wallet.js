@@ -1,12 +1,19 @@
 const { INITIAL_BALANCE } = require('../config');
-const Transaction = require('./transaction');
+//const Transaction = require('./transaction');
 var EC = require('elliptic').ec;
 // we use the same preset of bitcoin, but should work with the other ones too
 var ec = new EC('secp256k1');
+const {TxIn} = require('../transaction_module/transaction');
+const {TxOut} = require('../transaction_module/transaction');
+const {Transaction} = require('../transaction_module/transaction');
+
+
+const fs = require("fs");
+
 
 
 const SHA256 = require('crypto-js/sha256');
-const fs = require("fs");
+const KeyPair = require("../keyPair");
 
 class Wallet{
     /**
@@ -15,10 +22,15 @@ class Wallet{
      * and the balance
      */
     constructor(){
-        this.balance = INITIAL_BALANCE;
-        this.keyPair = ec.genKeyPair()
-        this.publicKey = this.keyPair.getPublic().encode('hex');
+        //this.balance = INITIAL_BALANCE;
+        this.keyPair = KeyPair.generateKeyPair();
+        this.publicKey = this.keyPair.getPublic().encode('hex',false);
+        this.unspent = [];
     }
+    sign(dataHash){
+        return this.keyPair.sign(dataHash);
+    }
+
 
     toString(){
         return `Wallet - 
@@ -26,125 +38,116 @@ class Wallet{
         balance  : ${this.balance}`
     }
 
-    static generateKeyPair(){
-        return  ec.genKeyPair();
-    }
+
+
+
     static hash(data){
         return SHA256(JSON.stringify(data)).toString();
     }
-    /**
-     * verify the transaction signature to
-     * check its validity using the method provided
-     * in EC module
-     */
+
 
     static verifySignature(publicKey,signature,dataHash){
         return ec.keyFromPublic(publicKey,'hex').verify(dataHash,signature);
     }
 
-
-    sign(dataHash){
-        return this.keyPair.sign(dataHash);
-    }
     /**
      * combines the functionality to create a new transaction
      * update a transaction into one and also update the transaction
      * pool if the transaction exists already.
      */
 
+     toHexString(byteArray)  {
 
-    createTransaction(recipient, amount,blockchain, transactionPool){
+        return Array.from(byteArray, (byte) => {
 
-        //this.balance = this.calculateBalance(blockchain);
-        this.balance = 50;
+            return ('0' + (byte & 0xFF).toString(16)).slice(-2);
 
-        if(amount > this.balance){
-            console.log(`Amount: ${amount} exceeds the current balance: ${this.balance}`);
+        }).join('');
+
+    };
+     createTransaction(unspentTxIns,address,amount){
+         console.log("Unspent TRANSACTIONS"+JSON.stringify(unspentTxIns))
+    let newTransaction = new Transaction();
+
+    if(unspentTxIns.length === 0){
+        newTransaction.txIns=[];
+
+        if(amount > INITIAL_BALANCE){
             return;
         }
 
-        let transaction = transactionPool.existingTransaction(this.publicKey);
+        newTransaction.txOuts=[];
+        newTransaction.txOuts.push(new TxOut(address,amount));
+        newTransaction.txOuts.push(new TxOut(this.publicKey,INITIAL_BALANCE-amount));
+        newTransaction.senderAddress= this.publicKey;
+        newTransaction.setTransactionId();
 
-        if(transaction){
-            // creates more outputs
-            transaction.update(this,recipient,amount)
-        }
-        else{
+        //let signedData = this.sign(newTransaction.id); second option
+        let signedData = this.toHexString(this.sign(newTransaction.id).toDER());
+        console.log("Signed(true): "+ec.keyFromPublic(this.publicKey,'hex').verify(newTransaction.id,signedData));
+        console.log("Signed(false): "+ec.keyFromPublic(this.publicKey,'hex').verify("newTransaction.id",signedData));
+        console.log(newTransaction.id);
 
-            // creates a new transaction and updates the transaction pool
-            transaction = Transaction.newTransaction(this,recipient,amount);
-            transactionPool.updateOrAddTransaction(transaction);
-        }
-        console.log("?????")
+      newTransaction.signature=signedData;
+      return newTransaction;
 
-        return transaction;
+
+    }else{
+       let spentTransactions = [];
+       let sumAmount=0;
+       let notEnoughMoney=false;
+
+       let i=0;
+       while(sumAmount < amount ){
+           console.log("unspentTxIns[i]: "+JSON.stringify(unspentTxIns[i]));
+           let txOut = unspentTxIns[i].txOuts.find(
+               (t)=> t.address === this.publicKey
+           );
+
+           if(txOut){
+               sumAmount =sumAmount+txOut.amount;
+               spentTransactions.push(unspentTxIns[i]);
+           }
+           ++i;
+           if(i === unspentTxIns.length){
+               if(sumAmount < amount){
+                   notEnoughMoney=true;
+               }
+               break;
+           }
+       }
+       if(notEnoughMoney){
+           console.log("Not enough money");
+           return;
+       }
+       spentTransactions.forEach((t)=>{
+        let txIn = new TxIn();
+        txIn.transactionId = t.id;
+        txIn.txOutIndex = t.txOuts.findIndex(
+            (n) => n.address === this.publicKey
+        );
+        newTransaction.txIns.push(txIn);
+       });
+
+       let transferTxOut = new TxOut();
+       transferTxOut.address = address;
+       transferTxOut.amount = amount;
+       newTransaction.txOuts.push((transferTxOut));
+       let changeTxOut = new TxOut();
+       changeTxOut.address = this.publicKey;
+       changeTxOut.amount = sumAmount - amount;
+       newTransaction.txOuts.push(changeTxOut);
+
+       newTransaction.setTransactionId();
+       newTransaction.signature=this.toHexString(this.sign(newTransaction.id).toDER());
+       newTransaction.senderAddress = this.publicKey;
+       return newTransaction;
+    }
 
     }
 
-    /**
-     * updates the balance of the wallet
-     * based on the latest transaction
-     */
 
-    calculateBalance(blockchain){
 
-        // store the existing balance
-        let balance = this.balance;
 
-        // create an array of transactions
-        let transactions = [];
-
-        // store all the transactions in the array
-        blockchain.chain.forEach(block => block.data.forEach(transaction =>{
-            transactions.push(transaction);
-        }));
-
-        // get all the transactions generated by the wallet ie money sent by the wallet
-        const walletInputTransactions = transactions.filter(transaction => transaction.input.address === this.publicKey);
-
-        // declare a variable to save the timestamp
-        let startTime = 0;
-
-        if(walletInputTransactions.length > 0){
-
-            // get the latest transaction
-            const recentInputTransaction = walletInputTransactions.reduce((prev,current)=> prev.input.timestamp > current.input.timestamp ? prev : current );
-
-            // get the outputs of that transactions, its amount will be the money that we would get back
-            balance = recentInputTransaction.outputs.find(output => output.address === this.publicKey).amount
-
-            // save the timestamp of the latest transaction made by the wallet
-            startTime = recentInputTransaction.input.timestamp
-        }
-
-        // get the transactions that were addressed to this wallet ie somebody sent some moeny
-        // and add its ouputs.
-        // since we save the timestamp we would only add the outputs of the transactions recieved
-        // only after the latest transactions made by us
-
-        transactions.forEach(transaction =>{
-            if(transaction.input.timestamp > startTime){
-                transaction.outputs.find(output=>{
-                    if(output.address === this.publicKey){
-                        balance += output.amount;
-                    }
-                })
-            }
-        })
-        return balance;
-
-    }
-
-    static blockchainWallet(){
-        const blockchainWallet = new this();
-        blockchainWallet.address = 'blockchain-wallet';
-        return blockchainWallet;
-    }
 }
-
 module.exports = Wallet;
-
-
-
-
-

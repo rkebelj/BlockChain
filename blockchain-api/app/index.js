@@ -7,7 +7,12 @@ const http = require('http');
 let Record = require('../record');
 const fs = require('fs');
 const  Wallet = require("../transaction_module/wallet")
-const TransactionPool = require('../transaction_module/unspentTransactions');
+//const {Transaction} = require('../transaction_module/transaction');
+const {TxIn} = require('../transaction_module/transaction');
+const {TxOut} = require('../transaction_module/transaction');
+const EC = require('elliptic').ec;
+// we use the same preset of bitcoin, but should work with the other ones too
+const ec = new EC('secp256k1');
 
 
 //create a new app
@@ -34,16 +39,21 @@ app.listen(HTTP_PORT,()=>{
 // create a new blockchain instance
 const blockchain = new Blockchain();
 // create a new wallet
-const wallet = new Wallet();
 
-// create a new transaction pool which will be later
-// decentralized and synchronized using the peer to peer server
-const transactionPool = new TransactionPool();
+
+
+
+
+
 
 
 
 var peers = [];
 var records = [];
+var wallets=[];
+var unconfirmedTransactions=[];
+
+
 
 //restoring chain
 try {
@@ -62,29 +72,91 @@ try {
 } catch (err) {
     console.error(err);
 }
+function isTransactionVerified(transactionId){
+blockchain.chain.forEach(block =>{
+    if(block.data.id === transactionId)
+    {
+        return false;
+    }
+});
+return true;
+}
+function  getUnspentIns(address){
+    let unspentTxIns = []
+    blockchain.chain.forEach(block=>{
+        const blockTransaction = block.data;
+        console.log(block.data);
+        if (blockTransaction.txOuts.find((t) => t.address === address)) {
+            blockTransaction.txOuts.forEach((txOut, i) => {
+                if (txOut.address === address) {
+                    const txIn = new TxIn(blockTransaction.id,i);
+                    //txIn.transactionId = blockTransaction.id;
+                    //txIn.txOutIndex = i;
+                    unspentTxIns.push(txIn);
+                }
+            });
 
-function broadcastTransaction() {
-    console.log("LOL=")
+            blockTransaction.txIns.forEach((txIn) => {
+                const index = unspentTxIns.findIndex(
+                    (txIn2) =>
+                        txIn.transactionId === txIn2.transactionId &&
+                        txIn.txOutIndex &&
+                        txIn2.txOutIndex
+                );
+                if (index !== -1) {
+                    unspentTxIns.splice(index, 1);
+                }
+            });
+        }
+
+    });
+    return unspentTxIns;
+}
+function  getUnspentTransactions(address){
+    const transactionIdToTxOutIndex = new Map();
+    const unspentTransactions = [];
+    blockchain.chain.forEach((block) => {
+        const blockTransaction = block.data;
+        const txOutIndex = blockTransaction.txOuts.findIndex((t) => t.address === address);
+        if (txOutIndex !== -1) {
+            unspentTransactions.push(blockTransaction);
+            transactionIdToTxOutIndex.set(blockTransaction.id, txOutIndex);
+            console.log(blockTransaction);
+            blockTransaction.txIns.forEach((txIn) => {
+                const index = unspentTransactions.findIndex((t) => t.id === txIn.transactionId &&
+                    txIn.txOutIndex === transactionIdToTxOutIndex.get(t.id));
+                if (index !== -1) {
+                    unspentTransactions.splice(index, 1);
+                }
+            });
+        }
+    });
+    return unspentTransactions;
+}
+
+function broadcastTransaction(transaction) {
     peers.forEach(peer => {
         console.log(peer);
         var ip = peer.split(':')[0];
         var port = peer.split(':')[1];
-        var data = JSON.stringify(transactionPool.transactions);
+        transaction = JSON.stringify(transaction);
+        //var data = JSON.stringify(transaction);
+        //var data = transaction;
 
 
         var options = {
             host: ip,
             port: port,
-            path: '/synchTransactions',
+            path: '/recievedTransaction',
             method: 'POST',
             headers: {
                 //'Content-Type': 'application/x-www-form-urlencoded',
                 'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(data)
+                'Content-Length': Buffer.byteLength(transaction)
             }
         };
         console.log("OPTIONS: "+options);
-        console.log("data sent: "+data);
+        console.log("data sent: "+transaction);
         var req = http.request(options, function(res)
         {
             res.setEncoding('utf8');
@@ -93,7 +165,7 @@ function broadcastTransaction() {
             });
         });
 
-        req.write(data);
+        req.write(transaction);
         req.end();
 
     });
@@ -219,19 +291,109 @@ app.post('/transaction',(req,res)=>{
 
 // get public key
 app.get('/public-key',(req,res)=>{
-    res.json({publicKey: wallet.publicKey});
-})
-app.get('/transactions',(req,res)=>{
-    res.json(transactionPool.transactions);
+
+    wallets.push(new Wallet());
+    wallets.forEach(wallet =>{console.log(wallet.publicKey )})
+    console.log("-----??????--------")
+    res.json(wallets[wallets.length-1].publicKey);
 });
-app.get('/bt',(req,res)=>{
-    broadcastTransaction()
-    res.json(transactionPool.transactions);
+app.post('/newTransaction',(req,res)=>{
+    const { address,  amount } = req.body;
+    //unconfirmedTransaction
+    const transaction = getUnspentTransactions(wallets[wallets.length-1].publicKey);
+console.log("Uvij me prosim: "+JSON.stringify(transaction));
+    let transakcija = wallets[wallets.length-1].createTransaction(transaction,address,parseInt(amount));
+     //blockchain.addBlock(transakcija);
+
+   // broadcastTransaction(transakcija);
+    blockchain.addBlock(transakcija);
+    broadcastChain();
+    unconfirmedTransactions.push(transakcija);
+    res.redirect('/chain');
 });
-app.post('/synchTransactions',(req,res)=>{
-   // records.push(new Record("POST","/replaceChain",req.connection.remoteAddress.split(":")[3],req.body));
-   console.log(req.body);
-    transactionPool.transactions.push(req.body)
+app.get('/unspent-txIns/:address',(req,res)=>{
+    let address = req.params.address
+
+    /*
+    let unspentTxIns = []
+    blockchain.chain.forEach(block=>{
+        const blockTransaction = block.data;
+        console.log(block.data);
+        if (blockTransaction.txOuts.find((t) => t.address === address)) {
+            blockTransaction.txOuts.forEach((txOut, i) => {
+                if (txOut.address === address) {
+                    const txIn = new TxIn(blockTransrsraction.id,i);
+                   //txIn.transactionId = blockTransaction.id;
+                   //txIn.txOutIndex = i;
+                    unspentTxIns.push(txIn);
+                }
+            });
+
+            blockTransaction.txIns.forEach((txIn) => {
+                const index = unspentTxIns.findIndex(
+                    (txIn2) =>
+                        txIn.transactionId === txIn2.transactionId &&
+                        txIn.txOutIndex &&
+                        txIn2.txOutIndex
+                );
+                if (index !== -1) {
+                    unspentTxIns.splice(index, 1);
+                }
+            });
+        }
+
+    });
+    */
+    res.send(getUnspentIns(address));
+});
+app.get('/unspent-transactions/:address',(req,res)=>{
+    let address = req.params.address
+
+    res.send(getUnspentTransactions(address));
+});
+app.post('/recievedTransaction',(req,res)=>{
+    //records.push(new Record("POST","/replaceChain",req.connection.remoteAddress.split(":")[3],req.body));
+    console.log("TRANSACTION recieved: "+req.body);
+    let transaction = req.body;
+    console.log("???"+ec.keyFromPublic(transaction.senderAddress,'hex').verify(transaction.id,transaction.signature));
+    if(ec.keyFromPublic(transaction.senderAddress,'hex').verify(transaction.id,transaction.signature))//preveri podpis
+    {
+
+        unconfirmedTransactions.push(transaction);
+        //blockchain.addBlock(transaction);
+
+    }
+    //blockchain.addBlock(req.body);
+
     res.redirect('/');
+});
+app.get('/verify',(req,res)=>{
+    //records.push(new Record("POST","/replaceChain",req.connection.remoteAddress.split(":")[3],req.body));
+    unconfirmedTransactions.forEach(transaction =>{
+        console.log("should be true: "+ec.keyFromPublic(transaction.senderAddress,'hex').verify(transaction.id,transaction.signature));
+        console.log("should be false: "+ec.keyFromPublic(transaction.senderAddress,'hex').verify("transaction.id",transaction.signature));
+    });
+    res.redirect('/');
+});
+app.post('/getMoney',(req,res)=>{
+    //records.push(new Record("POST","/replaceChain",req.connection.remoteAddress.split(":")[3],req.body));
+    //let address = req.body;
+    const { address } = req.body;
+    console.log("ADDRESS: "+ address);
+
+   let money= getUnspentTransactions(address);
+    console.log("money: "+ money);
+   let amount =0;
+   money.forEach((t) =>{
+       t.txOuts.forEach(txOut=>{
+           if(txOut.address == address){
+               amount=parseInt(txOut.amount)+amount;
+           }
+       });
+   });
+   console.log("Vaš denar: "+amount);
+    //blockchain.addBlock(req.body);
+
+    res.send(amount.toString());
 });
 
