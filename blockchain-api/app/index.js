@@ -301,14 +301,15 @@ app.post('/newTransaction',(req,res)=>{
     const { address,  amount } = req.body;
     //unconfirmedTransaction
     const transaction = getUnspentTransactions(wallets[wallets.length-1].publicKey);
-console.log("Uvij me prosim: "+JSON.stringify(transaction));
-    let transakcija = wallets[wallets.length-1].createTransaction(transaction,address,parseInt(amount));
-     //blockchain.addBlock(transakcija);
 
-   // broadcastTransaction(transakcija);
+    let transakcija = wallets[wallets.length-1].createTransaction(transaction,address,parseInt(amount));
+
+
+    saveChainLocal()
     blockchain.addBlock(transakcija);
     broadcastChain();
     unconfirmedTransactions.push(transakcija);
+    saveChainLocal();
     res.redirect('/chain');
 });
 app.get('/unspent-txIns/:address',(req,res)=>{
@@ -380,20 +381,13 @@ app.post('/getMoney',(req,res)=>{
     //let address = req.body;
     const { address } = req.body;
     console.log("ADDRESS: "+ address);
-
+    let total = 0;
    let money= getUnspentTransactions(address);
-    console.log("money: "+ money);
-   let amount =0;
-   money.forEach((t) =>{
-       t.txOuts.forEach(txOut=>{
-           if(txOut.address == address){
-               amount=parseInt(txOut.amount)+amount;
-           }
-       });
-   });
-   console.log("Vaš denar: "+amount);
-    //blockchain.addBlock(req.body);
-
-    res.send(amount.toString());
+    console.log("money: "+ JSON.stringify(money));
+    money.forEach(m =>{
+        console.log(m);
+    });
+    console.log("total money is: "+total);
+    res.json(total);
 });
 

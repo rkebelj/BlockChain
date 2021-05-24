@@ -25,11 +25,10 @@ class Transaction {
         let txInStr="";
         let txOutStr="";
         this.txIns.forEach(i => {
-
             txInStr +=i.transactionId+i.txOutIndex;
         });
          this.txOuts.forEach(o => {
-            txInStr +=o.transactionId+o.txOutIndex;
+             txOutStr +=o.transactionId+o.txOutIndex;
         });
          console.log(txInStr+" txIn "+txOutStr+"txOut "+this.senderAddress);
         const mergedString=txInStr+txOutStr+this.senderAddress;
