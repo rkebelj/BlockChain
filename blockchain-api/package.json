@@ -4,8 +4,8 @@
   "description": "",
   "main": "chain/blockchain.js",
   "scripts": {
-    "start": "node ./app",
-    "dev": "nodemon ./app"
+    "start": "node ./bin/www",
+    "dev": "nodemon ./bin/www"
   },
   "keywords": [],
   "author": "",

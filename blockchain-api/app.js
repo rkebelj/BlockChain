@@ -1,19 +1,25 @@
-const express = require('express');
-const Blockchain = require('../chain/blockchain');
+/*const express = require('express');
+const Blockchain = require('./chain/blockchain');
 const bodyParser = require('body-parser');
 const path = require("path");
 const querystring = require("qs");
 const http = require('http');
-let Record = require('../record');
+let Record = require('./record');
 const fs = require('fs');
-const  Wallet = require("../transaction_module/wallet")
+const  Wallet = require("./transaction_module/wallet")
 //const {Transaction} = require('../transaction_module/transaction');
-const {TxIn} = require('../transaction_module/transaction');
-const {TxOut} = require('../transaction_module/transaction');
+const {TxIn} = require('./transaction_module/transaction');
+const {TxOut} = require('./transaction_module/transaction');
 const EC = require('elliptic').ec;
 // we use the same preset of bitcoin, but should work with the other ones too
-const ec = new EC('secp256k1');
+const ec = new EC('secp256k1');*/
 
+
+var createError = require('http-errors');
+var express = require('express');
+var path = require('path');
+var cookieParser = require('cookie-parser');
+var logger = require('morgan');
 
 var mongoose = require('mongoose');
 var mongoDB = 'mongodb://127.0.0.1/projekt';
@@ -25,11 +31,9 @@ db.on('error', console.error.bind(console, 'MongoDB connection error'));
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/userRoutes');
 
+var app = express();
 
-//create a new app
-const app  = express();
-// view engine setup
-
+//CORS
 var cors = require('cors');
 var allowedOrigins = ['http://localhost:3000','http://localhost:3001'];
 app.use(cors({
@@ -47,7 +51,8 @@ app.use(cors({
     }
 }));
 
-app.set('views', path.join(__dirname, '../views'));
+// view engine setup
+app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'hbs');
 
 var session = require('express-session');
@@ -87,7 +92,6 @@ app.use(function(err, req, res, next) {
 module.exports = app;
 
 
-
 /*
 //using the blody parser middleware
 app.use(bodyParser.json());
@@ -103,6 +107,10 @@ app.listen(HTTP_PORT,()=>{
 })
 */
 
+
+
+
+/*
 // create a new blockchain instance
 const blockchain = new Blockchain();
 // create a new wallet
@@ -411,7 +419,8 @@ app.get('/unspent-txIns/:address',(req,res)=>{
         }
 
     });
-    */
+
+
     res.send(getUnspentIns(address));
 });
 app.get('/unspent-transactions/:address',(req,res)=>{
@@ -458,3 +467,4 @@ app.post('/getMoney',(req,res)=>{
     res.json(total);
 });
 
+*/

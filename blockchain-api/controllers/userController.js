@@ -1,4 +1,4 @@
-var UserModel = require('../models/userModel.js');
+var userModel = require('../models/userModel.js');
 
 /**
  * userController.js
@@ -11,15 +11,36 @@ module.exports = {
      * userController.list()
      */
     list: function (req, res) {
-        UserModel.find(function (err, users) {
+        userModel.find(function (err, users) {
             if (err) {
                 return res.status(500).json({
                     message: 'Error when getting user.',
                     error: err
                 });
             }
-
             return res.json(users);
+        });
+    },
+
+    showLogin: function(req, res){
+        res.render('user/login');
+    },
+
+    showRegister: function(req, res) {
+        res.render('user/register');
+    },
+
+    login: function(req, res, next){
+        userModel.authenticate(req.body.username, req.body.password, function(error, user){
+            if(error || !user){
+                var err = new Error("Wrong username or password");
+                err.status = 401;
+                return next(err);
+            } else {
+                req.session.userId = user._id;
+                req.session.username = user.username;
+                return res.status(201).json(user);
+            }
         });
     },
 
@@ -28,21 +49,18 @@ module.exports = {
      */
     show: function (req, res) {
         var id = req.params.id;
-
-        UserModel.findOne({_id: id}, function (err, user) {
+        userModel.findOne({_id: id}, function (err, user) {
             if (err) {
                 return res.status(500).json({
                     message: 'Error when getting user.',
                     error: err
                 });
             }
-
             if (!user) {
                 return res.status(404).json({
                     message: 'No such user'
                 });
             }
-
             return res.json(user);
         });
     },
@@ -51,12 +69,18 @@ module.exports = {
      * userController.create()
      */
     create: function (req, res) {
-        var user = new UserModel({
-			username : req.body.username,
-			email : req.body.email,
-			password : req.body.password,
-			public_key : req.body.public_key,
-			private_key : req.body.private_key
+        wallets.push(new Wallet());
+        wallets.forEach(wallet =>{console.log(wallet.publicKey )})
+        console.log("-----??????--------")
+        res.json(wallets[wallets.length-1].publicKey);
+
+        var user = new userModel({
+            username : req.body.username,
+            email : req.body.email,
+            password : req.body.password,
+            public_key : wallets.publicKey,
+            private_key: wallets.privateKey,
+
         });
 
         user.save(function (err, user) {
@@ -66,9 +90,50 @@ module.exports = {
                     error: err
                 });
             }
-
             return res.status(201).json(user);
         });
+    },
+
+
+    logout: function(req,res,next){
+        if(req.session){
+            req.session.destroy(function(err){
+                if(err){
+                    return next(err);
+                } else {
+                    //return res.redirect('/');
+                    return res.status(200);
+                }
+            });
+        }
+    },
+
+    getName: function(req, res,next) {
+        userModel.findById(req.body.id)
+            .exec(function (error,user){
+                if(error){
+                    return next()
+                } else {
+                    return res.json(user);
+                }
+            });
+    },
+
+    profile: function(req, res, next) {
+        userModel.findById(req.session.userId)
+            .exec(function(error, user){
+                if(error){
+                    return next(error);
+                } else{
+                    if(user === null){
+                        var err = new Error("Not authenticated! Go back!");
+                        err.status = 401;
+                        return next(err);
+                    } else{
+                        res.render('user/profile', user);
+                    }
+                }
+            });
     },
 
     /**
@@ -76,15 +141,13 @@ module.exports = {
      */
     update: function (req, res) {
         var id = req.params.id;
-
-        UserModel.findOne({_id: id}, function (err, user) {
+        userModel.findOne({_id: id}, function (err, user) {
             if (err) {
                 return res.status(500).json({
                     message: 'Error when getting user',
                     error: err
                 });
             }
-
             if (!user) {
                 return res.status(404).json({
                     message: 'No such user'
@@ -92,11 +155,9 @@ module.exports = {
             }
 
             user.username = req.body.username ? req.body.username : user.username;
-			user.email = req.body.email ? req.body.email : user.email;
-			user.password = req.body.password ? req.body.password : user.password;
-			user.public_key = req.body.public_key ? req.body.public_key : user.public_key;
-			user.private_key = req.body.private_key ? req.body.private_key : user.private_key;
-			
+            user.email = req.body.email ? req.body.email : user.email;
+            user.password = req.body.password ? req.body.password : user.password;
+
             user.save(function (err, user) {
                 if (err) {
                     return res.status(500).json({
@@ -115,15 +176,13 @@ module.exports = {
      */
     remove: function (req, res) {
         var id = req.params.id;
-
-        UserModel.findByIdAndRemove(id, function (err, user) {
+        userModel.findByIdAndRemove(id, function (err, user) {
             if (err) {
                 return res.status(500).json({
                     message: 'Error when deleting the user.',
                     error: err
                 });
             }
-
             return res.status(204).json();
         });
     }
