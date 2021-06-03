@@ -1,4 +1,5 @@
 var userModel = require('../models/userModel.js');
+var Wallet = require('../transaction_module/wallet');
 
 /**
  * userController.js
@@ -69,17 +70,19 @@ module.exports = {
      * userController.create()
      */
     create: function (req, res) {
-        wallets.push(new Wallet());
-        wallets.forEach(wallet =>{console.log(wallet.publicKey )})
-        console.log("-----??????--------")
-        res.json(wallets[wallets.length-1].publicKey);
+
+        var wallet = new Wallet();
+        console.log("KEYYS:");
+        console.log(wallet.keyPair.getPrivate().toString());
+        console.log(wallet.publicKey);
+
 
         var user = new userModel({
             username : req.body.username,
             email : req.body.email,
             password : req.body.password,
-            public_key : wallets.publicKey,
-            private_key: wallets.privateKey,
+            private_key : wallet.keyPair.getPrivate().toString(),
+            public_key: wallet.publicKey,
 
         });
 
