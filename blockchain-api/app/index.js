@@ -15,13 +15,80 @@ const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
 
 
+var mongoose = require('mongoose');
+var mongoDB = 'mongodb://127.0.0.1/projekt';
+mongoose.connect(mongoDB);
+mongoose.Promise = global.Promise;
+var db = mongoose.connection;
+db.on('error', console.error.bind(console, 'MongoDB connection error'));
+
+var indexRouter = require('./routes/index');
+var usersRouter = require('./routes/userRoutes');
+
+
 //create a new app
 const app  = express();
 // view engine setup
 
+var cors = require('cors');
+var allowedOrigins = ['http://localhost:3000','http://localhost:3001'];
+app.use(cors({
+    credentials: true,
+    origin: function(origin, callback){
+        // allow requests with no origin
+        // (like mobile apps or curl requests)
+        if(!origin) return callback(null, true);
+        if(allowedOrigins.indexOf(origin) === -1){
+            var msg = 'The CORS policy for this site does not ' +
+                'allow access from the specified Origin.';
+            return callback(new Error(msg), false);
+        }
+        return callback(null, true);
+    }
+}));
+
 app.set('views', path.join(__dirname, '../views'));
 app.set('view engine', 'hbs');
 
+var session = require('express-session');
+var MongoStore = require('connect-mongo');
+app.use(session({
+    secret: 'work hard',
+    resave: true,
+    saveUninitialized: false,
+    store: MongoStore.create({mongoUrl: mongoDB})
+}));
+
+app.use(logger('dev'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.use('/', indexRouter);
+app.use('/users', usersRouter);
+
+// catch 404 and forward to error handler
+app.use(function(req, res, next) {
+    next(createError(404));
+});
+
+// error handler
+app.use(function(err, req, res, next) {
+    // set locals, only providing error in development
+    res.locals.message = err.message;
+    res.locals.error = req.app.get('env') === 'development' ? err : {};
+
+    // render the error page
+    res.status(err.status || 500);
+    res.render('error');
+});
+
+module.exports = app;
+
+
+
+/*
 //using the blody parser middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -34,7 +101,7 @@ const HTTP_PORT = process.env.HTTP_PORT || 3000;
 app.listen(HTTP_PORT,()=>{
     console.log(`listening on port ${HTTP_PORT}`);
 })
-
+*/
 
 // create a new blockchain instance
 const blockchain = new Blockchain();
