@@ -30,6 +30,10 @@ function App() {
             <Link to="/" className="btn btn-primary">Nazaj</Link>
             <Login/>
           </Route>
+          <Route path='/transaction'>
+            <Link to="/" className="btn btn-primary">Nazaj</Link>
+            <Transaction/>
+          </Route>
         </div>
       </BrowserRouter>
 

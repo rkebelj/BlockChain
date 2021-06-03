@@ -45,6 +45,20 @@ module.exports = {
         });
     },
 
+    async function newTransaction(amunt,address, public_key){
+        var usr=(public_key)=>userModel.findOne({public_key:public_key}).then(user=>user.private_key)
+        var privKey = await usr(public_key);
+        var usr2=(address)=>userModel.findOne({username:address}).then(user=>user.public_key)
+        var address1 = await usr2(address);
+        console.log(usr);
+        var amount=parseInt(amount);
+
+    }
+
+    transaction: function(req, res, next){
+
+    },
+
     /**
      * userController.show()
      */

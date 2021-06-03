@@ -18,7 +18,7 @@ function requiresLogin(req, res, next){
 router.get('/', userController.list);
 router.get('/login', userController.showLogin);
 router.get('/register', userController.showRegister);
-router.get('/profile', userController.profile);
+router.get('/profile',requiresLogin(), userController.profile);
 router.get('/logout', userController.logout);
 
 /*
@@ -31,6 +31,7 @@ router.get('/:id', userController.show);
  */
 router.post('/', userController.create);
 router.post('/login', userController.login);
+router.post('/transaction',requiresLogin, userController.transaction);
 
 /*
  * PUT
