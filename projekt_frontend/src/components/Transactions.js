@@ -27,8 +27,8 @@ function Transaction(props) {
 
     return (
         <form className="form-group" onSubmit={Transaction}>
-            <input type="text" className="form-control" name="username" placeholder="Uporabniško ime" value={username} onChange={(e)=>{setUsername(e.target.value)}}/>
-            <input type="text" className="form-control" name="amount" placeholder="Geslo" value={amount} onChange={(e)=>{setAmount(e.target.value)}}/>
+            <input type="text" className="form-control" name="username" placeholder="Prejemnik" value={username} onChange={(e)=>{setUsername(e.target.value)}}/>
+            <input type="text" className="form-control" name="amount" placeholder="Vsota" value={amount} onChange={(e)=>{setAmount(e.target.value)}}/>
             <Button text="Pošlji"/>
         </form>
     )

@@ -1,6 +1,7 @@
 import {useState, useEffect} from 'react';
 import Login from './components/Login';
 import Register from './components/Register';
+import Transaction from './components/Transactions';
 import Button from "./components/Button";
 import {BrowserRouter, Link, Route} from 'react-router-dom';
 
@@ -20,7 +21,9 @@ function App() {
           <Route path='/' exact>
             <Link to="/register" className="btn btn-primary">Registracija</Link>
             <Link to="/login" className="btn btn-primary">Vpis</Link>
+
             <Button onClick={logout} text="Odjava"/>
+            <Link to="/transaction" className="btn btn-primary">Transakcije</Link>
           </Route>
           <Route path='/register'>
             <Link to="/" className="btn btn-primary">Nazaj</Link>

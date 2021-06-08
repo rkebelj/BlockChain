@@ -1,0 +1,29 @@
+<h1>Profil uporabnika</h1>
+<h2>Username: </h2>
+<p>{{user.username}}</p>
+<h2>Public Key:</h2>
+<p>{{user.publicKey}}</p>
+<h2>Stanje:</h2>
+<p>{{stanje}}</p>
+<h2>Validirane transakcije:</h2>
+{{#each trans}}
+<hr>
+<h3>Transakcija</h4>
+<span><b>ID - </b></span>
+<span>{{id}}</span><br>
+<span><b>Signature - </b></span>
+<span>{{signature}}</span><br>
+<span><b>Sender address - </b></span>
+<span>{{senderAddress}}</span><br>
+{{#each txOuts}}
+<span><b>Sent To - </b></span>
+<span>{{address}}</span><br>
+<span><b>Amount - </b></span>
+<span>{{amount}}</span><br>
+{{/each}}
+{{/each}}
+<hr>
+<footer>
+<br><a type="button" href="/home">Domov </a>
+<br><a type="button" href="/logout">Odjava </a>
+</footer>

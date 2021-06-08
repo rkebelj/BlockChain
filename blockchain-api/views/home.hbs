@@ -1,0 +1,21 @@
+<h1>Ustvari transakcijo</h1>
+<form action="transaction" method="post" id="forma">
+    <select name="address">
+        {{#each users}}
+        <option>{{username}}</option>
+        {{/each}}
+    </select>
+    <input type="text" name="value" placeholder="Vrednost" required="">
+</form>
+<input type="submit" value="Nakaži" form="forma">
+</hr>
+<p id="uspesno"></p>
+<footer>
+<br><a type="button" href="/home">Domov </a>
+<br><a type="button" href="/profile">Profil </a>
+</footer>
+{{#if usp}}
+<p>Uspešna transakcija!</p>
+{{else}}
+<p>Neuspešna transakcija!</p>
+{{/if}}
