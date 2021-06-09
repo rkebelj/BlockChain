@@ -64,14 +64,14 @@ class Wallet{
         }).join('');
 
     };
-    createTransaction(unspentTxIns,address,amount){
+    createTransaction(unspentTxIns,address,amount,availableAmount){
         console.log("Unspent TRANSACTIONS"+JSON.stringify(unspentTxIns))
         let newTransaction = new Transaction();
 
         if(unspentTxIns.length === 0){
             newTransaction.txIns=[];
 
-            if(amount > INITIAL_BALANCE){
+            if(amount > availableAmount){
                 return;
             }
 

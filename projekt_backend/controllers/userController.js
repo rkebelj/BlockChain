@@ -131,6 +131,40 @@ function getMoney(address){
     req.end();
 
 }
+function getUnspentTxIns(address){
+    console.log("GETMONEY")
+    var myData = JSON.stringify({ address:address});
+
+    console.log(myData)
+
+    var options = {
+        host: ip,
+        port: port,
+        path: '/unspent-txIns/'+address,
+        params: address,
+        method: 'GET',
+        headers: {
+            //'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/json',
+            'Content-Length': ''
+        }
+    };
+    console.log("PATH "+options.path)
+    var req = http.request(options, function(res)
+    {
+        res.setEncoding('utf8');
+        res.on('data', function (chunk) {
+            console.log("statusna koda INS: " + res.statusCode +" messge:"+res.statusMessage);
+
+            console.log("RESPONSE Txins: "+chunk)
+            return chunk;
+        });
+    });
+
+    req.write('');
+    req.end();
+
+}
 module.exports = {
 
     /**
@@ -228,7 +262,15 @@ module.exports = {
                 public_key=user1.public_key;
                 console.log("Inside : "+public_key)
                 var availableMoney=getMoney(public_key)
-            console.log(availableMoney);
+                var unspentTxIns = getUnspentTxIns(public_key)
+                console.log("available money:"+availableMoney);
+                console.log("TxIns:"+ unspentTxIns);
+                return;
+
+
+                var wallet = new Wallet();
+                wallet.publicKey = user1.public_key;
+
 
         });
         console.log("Outside : "+public_key);
