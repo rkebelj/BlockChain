@@ -141,7 +141,7 @@ module.exports = {
         });
     },
 
-    user: function (req, res, next) {
+    user: function (req, res) {
         var id = req.session.userId;
         console.log(req.session);
         console.log(id);
@@ -168,7 +168,26 @@ module.exports = {
     },
 
     new_transaction: function (req,res){
+        var user =req.body.username;
+        var amount = req.body.amount;
+        var public_key;
+        userModel.findOne({username: user}, function (err, user1) {
+                if (err) {
+                    return res.status(500).json({
+                        message: 'Error when getting user.',
+                        error: err
+                    });
+                }
+                if (!user1) {
+                    return res.status(404).json({
+                        message: 'No such user'
+                    });
+                }
+                public_key=user1.public_key;
+                //console.log(public_key);
 
+
+        });
     },
 
 
