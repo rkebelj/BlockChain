@@ -34,6 +34,7 @@ router.get('/:id', userController.show);
  */
 router.post('/', userController.create);
 router.post('/login', userController.login);
+router.post('/new_transaction',requiresLogin, userController.new_transaction);
 
 /*
  * PUT

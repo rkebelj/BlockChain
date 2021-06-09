@@ -164,6 +164,10 @@ module.exports = {
     },
 
     transactions: function (req, res) {
+        
+    },
+
+    new_transaction: function (req,res){
 
     },
 
