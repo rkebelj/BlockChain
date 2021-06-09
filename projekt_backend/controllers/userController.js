@@ -1,11 +1,13 @@
 var userModel = require('../models/userModel.js');
 const Wallet = require("../transaction_module/wallet");
+const http = require('http');
 
 /**
  * userController.js
  *
  * @description :: Server-side logic for managing users.
  */
+/*
 async function newTransaction(amount,address, public_key) {
     var usr = (public_key) => userModel.findOne({public_key: public_key}).then(user => user.private_key)
     var privKey = await usr(public_key);
@@ -92,6 +94,40 @@ async function newTransaction(amount,address, public_key) {
     }
 
 }
+*/
+const port = 3000;
+const ip ='192.168.0.28';
+
+
+function getMoney(address){
+    console.log("GETMONEY")
+    var JSONaddress  = JSON.stringify(address);
+    console.log(JSONaddress)
+    var options = {
+        host: ip,
+        port: port,
+        path: '/getMoney',
+        method: 'POST',
+        headers: {
+            //'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(JSONaddress)
+        }
+    };
+    var req = http.request(options, function(res)
+    {
+        res.setEncoding('utf8');
+        res.on('data', function (chunk) {
+            console.log("statusna koda T: " + res.statusCode +" messge:"+res.statusMessage);
+            console.log("RESPONSE: "+chunk)
+
+        });
+    });
+
+    req.write(JSONaddress);
+    req.end();
+
+}
 module.exports = {
 
     /**
@@ -167,7 +203,10 @@ module.exports = {
         
     },
 
+
+
     new_transaction: function (req,res){
+        console.log("NEW TRANS")
         var user =req.body.username;
         var amount = req.body.amount;
         var public_key;
@@ -184,10 +223,11 @@ module.exports = {
                     });
                 }
                 public_key=user1.public_key;
-                //console.log(public_key);
-
+                console.log("Inside : "+public_key)
+                getMoney(public_key)
 
         });
+        console.log("Outside : "+public_key);
     },
 
 
@@ -232,6 +272,10 @@ module.exports = {
 
         });
 
+        const initialTransaction = wallet.createTransaction([],wallet.publicKey,0);
+        console.log("INIT TRANS2"+JSON.stringify(initialTransaction));
+
+
         user.save(function (err, user) {
             if (err) {
                 return res.status(500).json({
@@ -241,6 +285,35 @@ module.exports = {
             }
             return res.status(201).json(user);
         });
+        //TUKAJ NAREDIMO API NA VOUZLIŠČE
+        var tranSTR  = JSON.stringify(initialTransaction);
+        //var data = JSON.stringify(transaction);
+        //var data = transaction;
+
+
+        var options = {
+            host: '192.168.0.28',
+            port: 3000,
+            path: '/newTransaction',
+            method: 'POST',
+            headers: {
+                //'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(tranSTR)
+            }
+        };
+        var req = http.request(options, function(res)
+        {
+            res.setEncoding('utf8');
+            res.on('data', function (chunk) {
+                console.log("statusna koda T: " + res.statusCode +" messge:"+res.statusMessage);
+            });
+            console.log("RESPONSE: "+res)
+        });
+
+        req.write(tranSTR);
+        req.end();
+
     },
 
 

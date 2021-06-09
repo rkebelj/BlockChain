@@ -3,6 +3,7 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+const bodyParser = require('body-parser');
 
 var mongoose = require('mongoose');
 var mongoDB = 'mongodb://127.0.0.1/projekt';
@@ -15,10 +16,12 @@ var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/userRoutes');
 
 var app = express();
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 //CORS
 var cors = require('cors');
-var allowedOrigins = ['http://localhost:3000','http://localhost:3001'];
+var allowedOrigins = ['http://localhost:3000','http://localhost:3001','http://localhost:3002','http://localhost:3003'];
 app.use(cors({
     credentials: true,
     origin: function(origin, callback){
