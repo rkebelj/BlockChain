@@ -101,8 +101,10 @@ const ip ='192.168.0.28';
 
 function getMoney(address){
     console.log("GETMONEY")
-    var JSONaddress  = JSON.stringify(address);
-    console.log(JSONaddress)
+    var myData = JSON.stringify({ address:address});
+
+    console.log(myData)
+
     var options = {
         host: ip,
         port: port,
@@ -111,7 +113,7 @@ function getMoney(address){
         headers: {
             //'Content-Type': 'application/x-www-form-urlencoded',
             'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(JSONaddress)
+            'Content-Length': Buffer.byteLength(myData)
         }
     };
     var req = http.request(options, function(res)
@@ -119,12 +121,13 @@ function getMoney(address){
         res.setEncoding('utf8');
         res.on('data', function (chunk) {
             console.log("statusna koda T: " + res.statusCode +" messge:"+res.statusMessage);
-            console.log("RESPONSE: "+chunk)
 
+            console.log("RESPONSE: "+chunk)
+            return chunk;
         });
     });
 
-    req.write(JSONaddress);
+    req.write(myData);
     req.end();
 
 }
@@ -224,7 +227,8 @@ module.exports = {
                 }
                 public_key=user1.public_key;
                 console.log("Inside : "+public_key)
-                getMoney(public_key)
+                var availableMoney=getMoney(public_key)
+            console.log(availableMoney);
 
         });
         console.log("Outside : "+public_key);

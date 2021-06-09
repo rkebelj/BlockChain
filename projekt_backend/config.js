@@ -4,7 +4,7 @@
 //const DIFFICULTY = ?;
 //const MINING_REWARD = ?;
 
-const INITIAL_BALANCE = 500;
+const INITIAL_BALANCE = 400;
 
 
 module.exports = {
