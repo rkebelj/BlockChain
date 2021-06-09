@@ -95,46 +95,47 @@ async function newTransaction(amount,address, public_key) {
 
 }
 */
-const port = 3000;
-const ip ='192.168.0.28';
+const port = 3005;
+const ip ='192.168.0.29';
 
+function getMoney(address) {
+        console.log("GETMONEY")
+        var myData = JSON.stringify({address: address});
 
-function getMoney(address){
-    console.log("GETMONEY")
-    var myData = JSON.stringify({ address:address});
+        console.log("hejjjjjjjj");
+        console.log(myData)
 
-    console.log(myData)
+        var options = {
+            host: ip,
+            port: port,
+            path: '/getMoney',
+            method: 'POST',
+            headers: {
+                //'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(myData)
+            }
+        };
+        var req = http.request(options, function (res) {
+            res.setEncoding('utf8');
+            res.on('data', function (chunk) {
+                console.log("statusna koda T: " + res.statusCode + " message:" + res.statusMessage);
 
-    var options = {
-        host: ip,
-        port: port,
-        path: '/getMoney',
-        method: 'POST',
-        headers: {
-            //'Content-Type': 'application/x-www-form-urlencoded',
-            'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(myData)
-        }
-    };
-    var req = http.request(options, function(res)
-    {
-        res.setEncoding('utf8');
-        res.on('data', function (chunk) {
-            console.log("statusna koda T: " + res.statusCode +" messge:"+res.statusMessage);
-
-            console.log("RESPONSE: "+chunk)
-            return chunk;
+                console.log("RESPONSE: " + chunk)
+                return chunk;
+            });
         });
-    });
 
-    req.write(myData);
-    req.end();
+        req.write(myData);
+        req.end();
 
 }
+
 function getUnspentTxIns(address){
-    console.log("GETMONEY")
+    console.log("UNSPENT-TX-INS")
     var myData = JSON.stringify({ address:address});
 
+    console.log("hejjjjjjjj7777777");
     console.log(myData)
 
     var options = {
@@ -152,9 +153,11 @@ function getUnspentTxIns(address){
     console.log("PATH "+options.path)
     var req = http.request(options, function(res)
     {
+        console.log("hejjj22222");
         res.setEncoding('utf8');
         res.on('data', function (chunk) {
-            console.log("statusna koda INS: " + res.statusCode +" messge:"+res.statusMessage);
+            //console.log("hejjj222223");
+            console.log("statusna koda INS: " + res.statusCode +" message:"+res.statusMessage);
 
             console.log("RESPONSE Txins: "+chunk)
             return chunk;
@@ -261,8 +264,8 @@ module.exports = {
                 }
                 public_key=user1.public_key;
                 console.log("Inside : "+public_key)
-                var availableMoney=getMoney(public_key)
-                var unspentTxIns = getUnspentTxIns(public_key)
+                const availableMoney=getMoney(public_key);
+                var unspentTxIns = getUnspentTxIns(public_key);
                 console.log("available money:"+availableMoney);
                 console.log("TxIns:"+ unspentTxIns);
                 return;
@@ -270,6 +273,7 @@ module.exports = {
 
                 var wallet = new Wallet();
                 wallet.publicKey = user1.public_key;
+                wallet.createTransaction()
 
 
         });
@@ -338,8 +342,8 @@ module.exports = {
 
 
         var options = {
-            host: '192.168.0.28',
-            port: 3000,
+            host: ip,
+            port: port,
             path: '/newTransaction',
             method: 'POST',
             headers: {

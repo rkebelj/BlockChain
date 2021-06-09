@@ -29,7 +29,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 
 //get the port from the user or set the default port
-const HTTP_PORT = process.env.HTTP_PORT || 3000;
+const HTTP_PORT = process.env.HTTP_PORT || 3005;
 // app server configurations
 app.listen(HTTP_PORT,()=>{
     console.log(`listening on port ${HTTP_PORT}`);
@@ -380,8 +380,8 @@ app.post('/getMoney',(req,res)=>{
 
     console.log("ADDRESS: "+ req.body);
 
-    return;
     let total = 0;
+    const {address}=req.body;
    let money= getUnspentTransactions(address);
     console.log(JSON.stringify(money));
     money.forEach(transaction =>{
