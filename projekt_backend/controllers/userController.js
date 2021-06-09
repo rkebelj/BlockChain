@@ -131,12 +131,40 @@ module.exports = {
                 err.status = 401;
                 return next(err);
             } else {
-                req.session.userId = user._id;
+                req.session.userId = user.id;
+
                 req.session.username = user.username;
-                req.session.publicKey = user.publicKey;
+                req.session.publicKey = user.public_key;
+                console.log(req.session.publicKey);
                 return res.status(201).json(user);
             }
         });
+    },
+
+    user: function (req, res, next) {
+        var id = req.session.userId;
+        console.log(req.session);
+        console.log(id);
+        userModel.findOne({_id: id}, function (err, user) {
+            if (err) {
+                return res.status(500).json({
+                    message: 'Error when getting user.',
+                    error: err
+                });
+            }
+            if (!user) {
+                return res.status(404).json({
+                    message: 'No such user'
+                });
+            }
+            console.log(user);
+            return res.json(user);
+
+        });
+    },
+
+    transactions: function (req, res) {
+
     },
 
 

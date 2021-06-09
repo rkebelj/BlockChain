@@ -10,10 +10,15 @@ function User(props) {
 
         useEffect( function () {
             const getUser = async function () {
-                const res = await fetch('http://localhost:3001/users/user')
+                const res = await fetch('http://localhost:3001/users/user',
+                {
+                    method: 'GET',
+                    credentials:'include'
+                });
                 const data = await res.json();
+                //console.log(data.publicKey);
                 setUsername(data.username);
-                setPublicKey(data.publicKey);
+                setPublicKey(data.public_key);
                 setAmount(data.amount);
             }
             getUser();
@@ -21,7 +26,11 @@ function User(props) {
 
     useEffect(function () {
         const getTransactions = async function () {
-            const res = await fetch('http://localhost:3001/users/transactions');
+            const res = await fetch('http://localhost:3001/users/transactions',
+                {
+                    method: 'GET',
+                    credentials:'include'
+                });
             const data = await res.json();
             setTransactions(data);
             //console.log(data);
@@ -33,11 +42,9 @@ function User(props) {
         <>
             <h1>Profil uporabnika</h1>
             <h2>Username:</h2>
-            <p content={username}></p>
+            <p>{username}</p>
             <h2>Public Key:</h2>
-            <p content={publicKey}></p>
-            <h2>Stanje:</h2>
-            <p content={amount}></p>
+            <p>{publicKey}</p>
             <h2>Validirane transakcije:</h2>
             <Transactions transactions={transactions}/>
         </>

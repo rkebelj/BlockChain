@@ -3,9 +3,10 @@ var router = express.Router();
 var userController = require('../controllers/userController.js');
 
 function requiresLogin(req, res, next){
-    if(req.session && req.session.userId){
+    if(req.session){
         return next();
     } else {
+        console.log(req.session);
         var err = new Error("You must be logged in to view this page.");
         err.status = 401;
         return next(err);
@@ -20,6 +21,8 @@ router.get('/login', userController.showLogin);
 router.get('/register', userController.showRegister);
 router.get('/profile', userController.profile);
 router.get('/logout', userController.logout);
+router.get('/user',requiresLogin,userController.user);
+router.get('/transactions',requiresLogin,userController.transactions);
 
 /*
  * GET
