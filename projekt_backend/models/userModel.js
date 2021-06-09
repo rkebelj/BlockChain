@@ -2,10 +2,13 @@ var mongoose = require('mongoose');
 var Schema   = mongoose.Schema;
 var bcrypt = require('bcrypt');
 
+
 var userSchema = new Schema({
 	'username' : String,
 	'email' : String,
-	'password' : String
+	'password' : String,
+	'private_key': String,
+	'public_key': String
 });
 
 userSchema.statics.authenticate = function(username, password, callback){

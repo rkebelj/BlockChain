@@ -1,15 +1,109 @@
 var userModel = require('../models/userModel.js');
+const Wallet = require("../transaction_module/wallet");
 
 /**
  * userController.js
  *
  * @description :: Server-side logic for managing users.
  */
+async function newTransaction(amount,address, public_key) {
+    var usr = (public_key) => userModel.findOne({public_key: public_key}).then(user => user.private_key)
+    var privKey = await usr(public_key);
+    var usr2 = (address) => userModel.findOne({username: address}).then(user => user.public_key)
+    var address1 = await usr2(address);
+    console.log(usr);
+    var amount = parseInt(amount);
+
+    let newTransaction = new Transaction();
+
+    if(unspentTxIns.length === 0){
+        newTransaction.txIns=[];
+
+        if(amount > INITIAL_BALANCE){
+            return;
+        }
+
+        newTransaction.txOuts=[];
+        newTransaction.txOuts.push(new TxOut(address,amount));
+        newTransaction.txOuts.push(new TxOut(this.publicKey,INITIAL_BALANCE-amount));
+        newTransaction.senderAddress= this.publicKey;
+        newTransaction.setTransactionId();
+
+        //let signedData = this.sign(newTransaction.id); second option
+        let signedData = this.toHexString(this.sign(newTransaction.id).toDER());
+        console.log("Signed(true): "+ec.keyFromPublic(this.publicKey,'hex').verify(newTransaction.id,signedData));
+        console.log("Signed(false): "+ec.keyFromPublic(this.publicKey,'hex').verify("newTransaction.id",signedData));
+        console.log(newTransaction.id);
+
+        newTransaction.signature=signedData;
+        return newTransaction;
+
+
+    }else{
+        let spentTransactions = [];
+        let sumAmount=0;
+        let notEnoughMoney=false;
+
+        let i=0;
+        while(sumAmount < amount ){
+            console.log("unspentTxIns[i]: "+JSON.stringify(unspentTxIns[i]));
+            let txOut = unspentTxIns[i].txOuts.find(
+                (t)=> t.address === this.publicKey
+            );
+
+            if(txOut){
+                sumAmount =sumAmount+txOut.amount;
+                spentTransactions.push(unspentTxIns[i]);
+            }
+            ++i;
+            if(i === unspentTxIns.length){
+                if(sumAmount < amount){
+                    notEnoughMoney=true;
+                }
+                break;
+            }
+        }
+        if(notEnoughMoney){
+            console.log("Not enough money");
+            return;
+        }
+        spentTransactions.forEach((t)=>{
+            let txIn = new TxIn();
+            txIn.transactionId = t.id;
+            txIn.txOutIndex = t.txOuts.findIndex(
+                (n) => n.address === this.publicKey
+            );
+            newTransaction.txIns.push(txIn);
+        });
+
+        let transferTxOut = new TxOut();
+        transferTxOut.address = address;
+        transferTxOut.amount = amount;
+        newTransaction.txOuts.push((transferTxOut));
+        let changeTxOut = new TxOut();
+        changeTxOut.address = this.publicKey;
+        changeTxOut.amount = sumAmount - amount;
+        newTransaction.txOuts.push(changeTxOut);
+
+        newTransaction.setTransactionId();
+        newTransaction.signature=this.toHexString(this.sign(newTransaction.id).toDER());
+        newTransaction.senderAddress = this.publicKey;
+        return newTransaction;
+    }
+
+}
 module.exports = {
 
     /**
      * userController.list()
      */
+   /* transaction: function(req, res, next){
+        var uspelo = await newTransaction(req.body.amount,req.body.username,req.session.publicKey);
+
+        var private_key = await uspelo(public_key);
+
+    },*/
+
     list: function (req, res) {
         userModel.find(function (err, users) {
             if (err) {
@@ -39,11 +133,12 @@ module.exports = {
             } else {
                 req.session.userId = user._id;
                 req.session.username = user.username;
-                //return res.redirect("profile");
+                req.session.publicKey = user.publicKey;
                 return res.status(201).json(user);
             }
         });
     },
+
 
     /**
      * userController.show()
@@ -70,10 +165,19 @@ module.exports = {
      * userController.create()
      */
     create: function (req, res) {
+
+        var wallet = new Wallet();
+        console.log("KEYYS:");
+        console.log(wallet.publicKey);
+        console.log(wallet.publicKey);
+
+
         var user = new userModel({
-			username : req.body.username,
-			email : req.body.email,
-			password : req.body.password
+            username : req.body.username,
+            email : req.body.email,
+            password : req.body.password,
+            private_key : wallet.keyPair.getPrivate().toString(),
+            public_key: wallet.publicKey,
 
         });
 
