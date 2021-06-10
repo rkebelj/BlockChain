@@ -1,6 +1,11 @@
 var userModel = require('../models/userModel.js');
 const Wallet = require("../transaction_module/wallet");
 const http = require('http');
+const got = require('got');
+var EC = require('elliptic').ec;
+// we use the same preset of bitcoin, but should work with the other ones too
+var ec = new EC('secp256k1');
+const SHA256 = require('crypto-js/sha256');
 
 /**
  * userController.js
@@ -95,8 +100,55 @@ async function newTransaction(amount,address, public_key) {
 
 }
 */
-const port = 3005;
-const ip ='192.168.0.29';
+const port = 3000;
+const ip ='192.168.0.28';
+async function getMoney2(senderAddress,receiverAddress,senderPrivateKey) {
+    const res = await got.post('http://' + ip + ':' + port + '/getMoney', {
+        json: {address: senderAddress},
+        responseType: "json"
+    });
+    const res2 = await got.post('http://' + ip + ':' + port + '/unspent-txIns', {
+        json: {address: senderAddress},
+        responseType: "json"
+    });
+    var availableMoney = JSON.parse(res.body)
+    var unspentIns = JSON.stringify(res2.body)
+    console.log("money:"+availableMoney)
+    console.log("trans2 "+unspentIns)
+    var wallet = new Wallet();
+    var obj =   JSON.parse(unspentIns)
+   // console.log("LLLL")
+    //console.log(obj)
+    //console.log(JSON.stringify(obj))
+    let transakcija=wallet.createTransaction(obj,receiverAddress,5,availableMoney,senderAddress,senderPrivateKey);
+    console.log("IDEMOOOOO"+JSON.stringify(transakcija));
+
+    var tranSTR  = JSON.stringify(transakcija);
+    var options = {
+        host: ip,
+        port: port,
+        path: '/newTransaction',
+        method: 'POST',
+        headers: {
+            //'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(tranSTR)
+        }
+    };
+    var req = http.request(options, function(res)
+    {
+        res.setEncoding('utf8');
+        res.on('data', function (chunk) {
+            console.log("statusna koda T: " + res.statusCode +" messge:"+res.statusMessage);
+        });
+        console.log("RESPONSE: "+res)
+    });
+
+    req.write(tranSTR);
+    req.end();
+
+}
+
 
 function getMoney(address) {
         console.log("GETMONEY")
@@ -131,41 +183,14 @@ function getMoney(address) {
 
 }
 
-function getUnspentTxIns(address){
-    console.log("UNSPENT-TX-INS")
-    var myData = JSON.stringify({ address:address});
-
-    console.log("hejjjjjjjj7777777");
-    console.log(myData)
-
-    var options = {
-        host: ip,
-        port: port,
-        path: '/unspent-txIns/'+address,
-        params: address,
-        method: 'GET',
-        headers: {
-            //'Content-Type': 'application/x-www-form-urlencoded',
-            'Content-Type': 'application/json',
-            'Content-Length': ''
-        }
-    };
-    console.log("PATH "+options.path)
-    var req = http.request(options, function(res)
-    {
-        console.log("hejjj22222");
-        res.setEncoding('utf8');
-        res.on('data', function (chunk) {
-            //console.log("hejjj222223");
-            console.log("statusna koda INS: " + res.statusCode +" message:"+res.statusMessage);
-
-            console.log("RESPONSE Txins: "+chunk)
-            return chunk;
-        });
+async function getUnspentTxIns(address) {
+    const res = await got.post('http://' + ip + ':' + port + '/unspent-txIns', {
+        json: {address: address},
+        responseType: "json"
     });
-
-    req.write('');
-    req.end();
+    console.log("GETtrans2: "+res.body)
+   // var test = JSON.parse(res.body)
+    return res.body;
 
 }
 module.exports = {
@@ -245,11 +270,14 @@ module.exports = {
 
 
 
-    new_transaction: function (req,res){
+     new_transaction:  async function (req,res){
         console.log("NEW TRANS")
         var user =req.body.username;
         var amount = req.body.amount;
+        var sender = req.session.publicKey;
         var public_key;
+       const obj= await userModel.findById(req.session.userId);
+       const privatekey =obj.private_key;
         userModel.findOne({username: user}, function (err, user1) {
                 if (err) {
                     return res.status(500).json({
@@ -263,11 +291,12 @@ module.exports = {
                     });
                 }
                 public_key=user1.public_key;
-                console.log("Inside : "+public_key)
-                const availableMoney=getMoney(public_key);
-                var unspentTxIns = getUnspentTxIns(public_key);
-                console.log("available money:"+availableMoney);
-                console.log("TxIns:"+ unspentTxIns);
+
+                 getMoney2(sender,user1.public_key,privatekey);
+
+               // var unspentTxIns = getUnspentTxIns(public_key);
+                //console.log("available money:"+availableMoney);
+                //console.log("TxIns:"+ unspentTxIns);
                 return;
 
 
@@ -307,22 +336,21 @@ module.exports = {
      */
     create: function (req, res) {
 
-        var wallet = new Wallet();
-        console.log("KEYYS:");
-        console.log(wallet.publicKey);
-        console.log(wallet.publicKey);
-
+        let wallet = new Wallet().initWallet();
 
         var user = new userModel({
             username : req.body.username,
             email : req.body.email,
             password : req.body.password,
-            private_key : wallet.keyPair.getPrivate().toString(),
+            private_key : wallet.privateKey,
             public_key: wallet.publicKey,
 
         });
+        console.log(wallet.privateKey)
+        console.log(wallet.publicKey)
 
-        const initialTransaction = wallet.createTransaction([],wallet.publicKey,0);
+        var initialTransaction = wallet.firstTransaction(wallet.publicKey)
+        //const initialTransaction = wallet.createTransaction([],wallet.publicKey,0);
         console.log("INIT TRANS2"+JSON.stringify(initialTransaction));
 
 
@@ -337,10 +365,6 @@ module.exports = {
         });
         //TUKAJ NAREDIMO API NA VOUZLIŠČE
         var tranSTR  = JSON.stringify(initialTransaction);
-        //var data = JSON.stringify(transaction);
-        //var data = transaction;
-
-
         var options = {
             host: ip,
             port: port,

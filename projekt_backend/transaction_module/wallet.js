@@ -21,11 +21,21 @@ class Wallet{
      * and the private key pair
      * and the balance
      */
-    constructor(){
+    constructor(pair,publicKey,privateKey){
         //this.balance = INITIAL_BALANCE;
-        this.keyPair = KeyPair.generateKeyPair();
-        this.publicKey = this.keyPair.getPublic().encode('hex',false);
+        this.keyPair = pair;
+        this.privateKey=privateKey;
+        this.publicKey = publicKey;
         this.unspent = [];
+    }
+    initWallet(){
+        const wallet = new Wallet();
+        const pair=ec.genKeyPair();
+        wallet.privateKey=pair.getPrivate().toString();
+        const realPair=ec.keyFromPrivate(wallet.privateKey)
+        wallet.publicKey=realPair.getPublic().encode("hex",false);
+
+        return wallet;
     }
     sign(dataHash){
         return this.keyPair.sign(dataHash);
@@ -64,7 +74,7 @@ class Wallet{
         }).join('');
 
     };
-    createTransaction(unspentTxIns,address,amount,availableAmount){
+    createTransaction(unspentTxIns,address,amount,availableAmount,senderPublicKey,senderPrivateKey){
         console.log("Unspent TRANSACTIONS"+JSON.stringify(unspentTxIns))
         let newTransaction = new Transaction();
 
@@ -82,16 +92,29 @@ class Wallet{
             newTransaction.setTransactionId();
 
             //let signedData = this.sign(newTransaction.id); second option
+            const pair = ec.keyFromPrivate(senderPrivateKey);
+            let dataToSign = newTransaction.id;
             let signedData = this.toHexString(this.sign(newTransaction.id).toDER());
-            console.log("Signed(true): "+ec.keyFromPublic(this.publicKey,'hex').verify(newTransaction.id,signedData));
+            console.log("Signed(true): "+ec.keyFromPublic(public_key,'hex').verify(newTransaction.id,signedData));
             console.log("Signed(false): "+ec.keyFromPublic(this.publicKey,'hex').verify("newTransaction.id",signedData));
             console.log(newTransaction.id);
+
+
+            //
+
+
+
+            //
+
+
+
 
             newTransaction.signature=signedData;
             return newTransaction;
 
 
         }else{
+            console.log("OK")
             let spentTransactions = [];
             let sumAmount=0;
             let notEnoughMoney=false;
@@ -100,7 +123,7 @@ class Wallet{
             while(sumAmount < amount ){
                 console.log("unspentTxIns[i]: "+JSON.stringify(unspentTxIns[i]));
                 let txOut = unspentTxIns[i].txOuts.find(
-                    (t)=> t.address === this.publicKey
+                    (t)=> t.address === senderPublicKey
                 );
 
                 if(txOut){
@@ -123,7 +146,7 @@ class Wallet{
                 let txIn = new TxIn();
                 txIn.transactionId = t.id;
                 txIn.txOutIndex = t.txOuts.findIndex(
-                    (n) => n.address === this.publicKey
+                    (n) => n.address === senderPublicKey
                 );
                 newTransaction.txIns.push(txIn);
             });
@@ -133,19 +156,44 @@ class Wallet{
             transferTxOut.amount = amount;
             newTransaction.txOuts.push((transferTxOut));
             let changeTxOut = new TxOut();
-            changeTxOut.address = this.publicKey;
+            changeTxOut.address = senderPublicKey;
             changeTxOut.amount = sumAmount - amount;
             newTransaction.txOuts.push(changeTxOut);
 
             newTransaction.setTransactionId();
-            newTransaction.signature=this.toHexString(this.sign(newTransaction.id).toDER());
-            newTransaction.senderAddress = this.publicKey;
+
+            console.log("OK2")
+            console.log("sender private key "+senderPrivateKey)
+            console.log("sender public key "+senderPublicKey)
+
+
+            const pair = ec.keyFromPrivate(senderPrivateKey);
+            let dataToSign = newTransaction.id;
+            let signedData = this.toHexString(pair.sign(dataToSign).toDER());
+
+            console.log("sender public key2 "+ec.keyFromPublic(senderPublicKey,'hex',false))
+
+            console.log("Signed(true): "+ec.keyFromPublic(senderPublicKey,'hex',false).verify(newTransaction.id,signedData));
+            console.log("Signed(false): "+ec.keyFromPublic(senderPublicKey,'hex',false).verify("newTransaction.id",signedData));
+            console.log(newTransaction.id);
+
+
+            newTransaction.signature=signedData;
+            newTransaction.senderAddress = senderPublicKey;
             return newTransaction;
         }
 
     }
 
-
+    firstTransaction(address){
+        let newTransaction = new Transaction();
+        newTransaction.txOuts=[];
+        newTransaction.txOuts.push(new TxOut(address,345));
+        newTransaction.senderAddress= "first transaction addr";
+        newTransaction.id="first transaction id";
+        newTransaction.signature="first transaction sign";
+        return newTransaction;
+    }
 
 
 }
