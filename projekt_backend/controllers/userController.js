@@ -100,8 +100,9 @@ async function newTransaction(amount,address, public_key) {
 
 }
 */
-const port = 3000;
-const ip ='192.168.0.28';
+const port = 3005;
+const ip ='192.168.0.29';
+var money;
 async function getMoney2(senderAddress,receiverAddress,senderPrivateKey) {
     const res = await got.post('http://' + ip + ':' + port + '/getMoney', {
         json: {address: senderAddress},
@@ -114,6 +115,7 @@ async function getMoney2(senderAddress,receiverAddress,senderPrivateKey) {
     var availableMoney = JSON.parse(res.body)
     var unspentIns = JSON.stringify(res2.body)
     console.log("money:"+availableMoney)
+    money=availableMoney;
     console.log("trans2 "+unspentIns)
     var wallet = new Wallet();
     var obj =   JSON.parse(unspentIns)
@@ -244,8 +246,6 @@ module.exports = {
 
     user: function (req, res) {
         var id = req.session.userId;
-        console.log(req.session);
-        console.log(id);
         userModel.findOne({_id: id}, function (err, user) {
             if (err) {
                 return res.status(500).json({
@@ -258,7 +258,6 @@ module.exports = {
                     message: 'No such user'
                 });
             }
-            console.log(user);
             return res.json(user);
 
         });
@@ -266,6 +265,13 @@ module.exports = {
 
     transactions: function (req, res) {
         
+    },
+
+    amount: function (req, res) {
+        console.log("amount");
+        return res.status(201).json({
+            amount: money
+        });
     },
 
 
@@ -297,7 +303,7 @@ module.exports = {
                // var unspentTxIns = getUnspentTxIns(public_key);
                 //console.log("available money:"+availableMoney);
                 //console.log("TxIns:"+ unspentTxIns);
-                return;
+                return res.status(201);
 
 
                 var wallet = new Wallet();
@@ -392,6 +398,7 @@ module.exports = {
 
 
     logout: function(req,res,next){
+        money=0;
         if(req.session){
             req.session.destroy(function(err){
                 if(err){

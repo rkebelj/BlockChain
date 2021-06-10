@@ -20,6 +20,10 @@ function NewTransaction(props) {
             })
         });
         const data = await res.json();
+
+        setUsername("");
+        setAmount("");
+
     }
 
     return (

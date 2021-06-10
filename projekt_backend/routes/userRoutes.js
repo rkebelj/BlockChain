@@ -22,6 +22,7 @@ router.get('/register', userController.showRegister);
 router.get('/profile', userController.profile);
 router.get('/logout', userController.logout);
 router.get('/user',requiresLogin,userController.user);
+router.get('/amount',requiresLogin,userController.amount);
 router.get('/transactions',requiresLogin,userController.transactions);
 
 /*

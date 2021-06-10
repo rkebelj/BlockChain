@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import Button from "./Button";
 import Transactions from "./Transactions";
+import Amount from "./Amount";
 
 function User(props) {
     const[username, setUsername] = useState('');
     const[publicKey, setPublicKey] = useState('');
-    const[amount, setAmount] = useState('');
     const [transactions, setTransactions] = useState([]);
 
         useEffect( function () {
@@ -16,10 +16,8 @@ function User(props) {
                     credentials:'include'
                 });
                 const data = await res.json();
-                //console.log(data.publicKey);
                 setUsername(data.username);
                 setPublicKey(data.public_key);
-                setAmount(data.amount);
             }
             getUser();
         }, []);
@@ -45,6 +43,7 @@ function User(props) {
             <p>{username}</p>
             <h2>Public Key:</h2>
             <p>{publicKey}</p>
+            <Amount/>
             <h2>Validirane transakcije:</h2>
             <Transactions transactions={transactions}/>
         </>
