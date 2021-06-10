@@ -29,7 +29,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 
 //get the port from the user or set the default port
-const HTTP_PORT = process.env.HTTP_PORT || 3005;
+const HTTP_PORT = process.env.HTTP_PORT || 3000;
 // app server configurations
 app.listen(HTTP_PORT,()=>{
     console.log(`listening on port ${HTTP_PORT}`);
@@ -115,13 +115,15 @@ function  getUnspentIns(address){
 function  getUnspentTransactions(address){
     const transactionIdToTxOutIndex = new Map();
     const unspentTransactions = [];
+
     blockchain.chain.forEach((block) => {
         const blockTransaction = block.data;
+
         const txOutIndex = blockTransaction.txOuts.findIndex((t) => t.address === address);
+
         if (txOutIndex !== -1) {
             unspentTransactions.push(blockTransaction);
             transactionIdToTxOutIndex.set(blockTransaction.id, txOutIndex);
-            console.log(blockTransaction);
             blockTransaction.txIns.forEach((txIn) => {
                 const index = unspentTransactions.findIndex((t) => t.id === txIn.transactionId &&
                     txIn.txOutIndex === transactionIdToTxOutIndex.get(t.id));
@@ -131,6 +133,7 @@ function  getUnspentTransactions(address){
             });
         }
     });
+    console.log("WTF")
     return unspentTransactions;
 }
 
@@ -293,6 +296,7 @@ app.get('/public-key',(req,res)=>{
 });
 app.post('/newTransaction',(req,res)=>{
     const { senderAddress,recieverAddress,  amount } = req.body;
+    console.log(req.body)
     //unconfirmedTransaction
     const transaction = req.body;
     console.log(transaction)
@@ -307,46 +311,8 @@ app.post('/newTransaction',(req,res)=>{
     saveChainLocal();
     res.redirect('/chain');
 });
-app.get('/unspent-txIns/:address',(req,res)=>{
-    let address = req.params.address
 
-    /*
-    let unspentTxIns = []
-    blockchain.chain.forEach(block=>{
-        const blockTransaction = block.data;
-        console.log(block.data);
-        if (blockTransaction.txOuts.find((t) => t.address === address)) {
-            blockTransaction.txOuts.forEach((txOut, i) => {
-                if (txOut.address === address) {
-                    const txIn = new TxIn(blockTransrsraction.id,i);
-                   //txIn.transactionId = blockTransaction.id;
-                   //txIn.txOutIndex = i;
-                    unspentTxIns.push(txIn);
-                }
-            });
 
-            blockTransaction.txIns.forEach((txIn) => {
-                const index = unspentTxIns.findIndex(
-                    (txIn2) =>
-                        txIn.transactionId === txIn2.transactionId &&
-                        txIn.txOutIndex &&
-                        txIn2.txOutIndex
-                );
-                if (index !== -1) {
-                    unspentTxIns.splice(index, 1);
-                }
-            });
-        }
-
-    });
-    */
-    res.send(getUnspentIns(address));
-});
-app.get('/unspent-transactions/:address',(req,res)=>{
-    let address = req.params.address
-
-    res.send(getUnspentTransactions(address));
-});
 app.post('/recievedTransaction',(req,res)=>{
     //records.push(new Record("POST","/replaceChain",req.connection.remoteAddress.split(":")[3],req.body));
     console.log("TRANSACTION recieved: "+req.body);
@@ -378,26 +344,32 @@ app.post('/getMoney',(req,res)=>{
     //records.push(new Record("POST","/replaceChain",req.connection.remoteAddress.split(":")[3],req.body));
     //let address = req.body;
 
-    console.log("ADDRESS: "+ req.body);
+  //  console.log("ADDRESS: "+ JSON.stringify(req.body));
+
+    const { address } = req.body;
+
 
     let total = 0;
-    const {address}=req.body;
    let money= getUnspentTransactions(address);
-    console.log(JSON.stringify(money));
+
     money.forEach(transaction =>{
-        console.log("TRANSAKCIJA "+JSON.stringify(transaction))
-        console.log("txOUTS: "+JSON.stringify(transaction.txOuts))
         transaction.txOuts.forEach(out=>{
             if(out.address == address)
             {
-                console.log(out.amount);
+
                 total = parseInt(out.amount) + total;
 
             }
-            console.log("OUT.amount: "+JSON.stringify(out));
         });
     });
-    console.log("total money is: "+total);
+    console.log("denar: "+total)
     res.json(total);
 });
+app.post('/unspent-txIns',(req,res)=>{
+    const { address } = req.body;
+    //console.log("ADDRESS transaciton "+address )
 
+
+    console.log("TRANSAKCIJE "+getUnspentTransactions(address))
+    res.json(getUnspentTransactions(address));
+});
