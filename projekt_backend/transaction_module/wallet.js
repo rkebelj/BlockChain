@@ -188,7 +188,7 @@ class Wallet{
     firstTransaction(address){
         let newTransaction = new Transaction();
         newTransaction.txOuts=[];
-        newTransaction.txOuts.push(new TxOut(address,345));
+        newTransaction.txOuts.push(new TxOut(address,200));
         newTransaction.senderAddress= "first transaction addr";
         newTransaction.id="first transaction id";
         newTransaction.signature="first transaction sign";
