@@ -102,7 +102,7 @@ async function newTransaction(amount,address, public_key) {
 */
 const port = 3000;
 const ip ='192.168.0.28';
-async function getMoney2(senderAddress,receiverAddress,senderPrivateKey) {
+async function getMoney2(senderAddress,receiverAddress,senderPrivateKey,amountToSend) {
     const res = await got.post('http://' + ip + ':' + port + '/getMoney', {
         json: {address: senderAddress},
         responseType: "json"
@@ -120,7 +120,7 @@ async function getMoney2(senderAddress,receiverAddress,senderPrivateKey) {
    // console.log("LLLL")
     //console.log(obj)
     //console.log(JSON.stringify(obj))
-    let transakcija=wallet.createTransaction(obj,receiverAddress,5,availableMoney,senderAddress,senderPrivateKey);
+    let transakcija=wallet.createTransaction(obj,receiverAddress,amountToSend,availableMoney,senderAddress,senderPrivateKey);
     console.log("IDEMOOOOO"+JSON.stringify(transakcija));
 
     var tranSTR  = JSON.stringify(transakcija);
@@ -292,7 +292,7 @@ module.exports = {
                 }
                 public_key=user1.public_key;
 
-                 getMoney2(sender,user1.public_key,privatekey);
+                 getMoney2(sender,user1.public_key,privatekey,amount);
 
                // var unspentTxIns = getUnspentTxIns(public_key);
                 //console.log("available money:"+availableMoney);
@@ -300,9 +300,6 @@ module.exports = {
                 return;
 
 
-                var wallet = new Wallet();
-                wallet.publicKey = user1.public_key;
-                wallet.createTransaction()
 
 
         });
