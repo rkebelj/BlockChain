@@ -3,7 +3,7 @@ var router = express.Router();
 var userController = require('../controllers/userController.js');
 
 function requiresLogin(req, res, next){
-    if(req.session){
+    if(req.session && req.session.userId){
         return next();
     } else {
         console.log(req.session);

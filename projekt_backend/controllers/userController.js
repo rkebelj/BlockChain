@@ -103,7 +103,7 @@ async function newTransaction(amount,address, public_key) {
 const port = 3005;
 const ip ='192.168.0.29';
 var money;
-async function getMoney2(senderAddress,receiverAddress,senderPrivateKey) {
+async function getMoney2(senderAddress,receiverAddress,senderPrivateKey,amount) {
     const res = await got.post('http://' + ip + ':' + port + '/getMoney', {
         json: {address: senderAddress},
         responseType: "json"
@@ -122,7 +122,7 @@ async function getMoney2(senderAddress,receiverAddress,senderPrivateKey) {
    // console.log("LLLL")
     //console.log(obj)
     //console.log(JSON.stringify(obj))
-    let transakcija=wallet.createTransaction(obj,receiverAddress,5,availableMoney,senderAddress,senderPrivateKey);
+    let transakcija=wallet.createTransaction(obj,receiverAddress,amount,availableMoney,senderAddress,senderPrivateKey);
     console.log("IDEMOOOOO"+JSON.stringify(transakcija));
 
     var tranSTR  = JSON.stringify(transakcija);
@@ -152,47 +152,23 @@ async function getMoney2(senderAddress,receiverAddress,senderPrivateKey) {
 }
 
 
-function getMoney(address) {
-        console.log("GETMONEY")
-        var myData = JSON.stringify({address: address});
+async function getMoney(senderAddress) {
+    const res = await got.post('http://' + ip + ':' + port + '/getMoney', {
+        json: {address: senderAddress},
+        responseType: "json"
+    });
 
-        console.log("hejjjjjjjj");
-        console.log(myData)
-
-        var options = {
-            host: ip,
-            port: port,
-            path: '/getMoney',
-            method: 'POST',
-            headers: {
-                //'Content-Type': 'application/x-www-form-urlencoded',
-                'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(myData)
-            }
-        };
-        var req = http.request(options, function (res) {
-            res.setEncoding('utf8');
-            res.on('data', function (chunk) {
-                console.log("statusna koda T: " + res.statusCode + " message:" + res.statusMessage);
-
-                console.log("RESPONSE: " + chunk)
-                return chunk;
-            });
-        });
-
-        req.write(myData);
-        req.end();
+    return await JSON.parse(res.body);
 
 }
 
-async function getUnspentTxIns(address) {
-    const res = await got.post('http://' + ip + ':' + port + '/unspent-txIns', {
-        json: {address: address},
+async function getTransactions(senderAddress) {
+    const res = await got.post('http://' + ip + ':' + port + '/v_transactions', {
+        json: {address: senderAddress},
         responseType: "json"
     });
-    console.log("GETtrans2: "+res.body)
-   // var test = JSON.parse(res.body)
-    return res.body;
+    console.log("tranzzzzzzz" + JSON.stringify(res.body))
+    return await JSON.parse(res.body);
 
 }
 module.exports = {
@@ -263,14 +239,18 @@ module.exports = {
         });
     },
 
-    transactions: function (req, res) {
-        
+    transactions: async function (req, res) {
+        var sender = req.session.publicKey;
+        var obj = await getTransactions(sender);
+        return res.status(201).json(obj);
     },
 
-    amount: function (req, res) {
-        console.log("amount");
+    amount: async function (req, res) {
+        var sender = req.session.publicKey;
+        var obj = await getMoney(sender);
+        console.log(obj);
         return res.status(201).json({
-            amount: money
+            amount : obj
         });
     },
 
@@ -298,7 +278,7 @@ module.exports = {
                 }
                 public_key=user1.public_key;
 
-                 getMoney2(sender,user1.public_key,privatekey);
+                 getMoney2(sender,user1.public_key,privatekey,amount);
 
                // var unspentTxIns = getUnspentTxIns(public_key);
                 //console.log("available money:"+availableMoney);

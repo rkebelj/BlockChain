@@ -40,6 +40,8 @@ app.listen(HTTP_PORT,()=>{
 const blockchain = new Blockchain();
 // create a new wallet
 
+var verifiedTransactions = [];
+
 
 
 
@@ -72,6 +74,25 @@ try {
 } catch (err) {
     console.error(err);
 }
+
+try {
+    if(fs.existsSync('savedJSON/transaction.json')) {
+        fs.readFile('savedJSON/transaction.json', 'utf-8', (err, data) => {
+            if (err) {
+                throw err;
+            }
+            verifiedTransactions = JSON.parse(data.toString());
+            console.log('Transaction restored');
+
+        });
+    } else {
+        console.log('Transaction not found');
+    }
+} catch (err) {
+    console.error(err);
+}
+
+
 function isTransactionVerified(transactionId){
 blockchain.chain.forEach(block =>{
     if(block.data.id === transactionId)
@@ -216,6 +237,15 @@ function saveChainLocal(){
 
 }
 
+function saveTransactionLocal(){
+    fs.writeFile('savedJSON/transaction.json', JSON.stringify(verifiedTransactions), (err) => {
+        if (err) {
+            throw err;
+        }
+    });
+
+}
+
 
 
 
@@ -226,6 +256,20 @@ function saveChainLocal(){
 //Requests
 
 //GET
+app.post('/v_transactions',(req,res)=>{
+    var address = req.body.address;
+
+    records.push(new Record("GET","/v_transactions",req.connection.remoteAddress.split(":")[3],"-"));
+    var mytrans = [];
+
+    verifiedTransactions.forEach(transaction =>{
+
+        if(transaction.senderAddress == address) {
+            mytrans.push(transaction);
+        }
+    });
+    res.json(JSON.stringify(mytrans));
+});
 app.get('/chain',(req,res)=>{
     records.push(new Record("GET","/chain",req.connection.remoteAddress.split(":")[3],"-"));
     res.json(blockchain.chain);
@@ -294,21 +338,43 @@ app.get('/public-key',(req,res)=>{
     console.log(wallet.keyPair.getPrivateKey().toString())
     res.json(wallets[wallets.length-1].publicKey);
 });
+
 app.post('/newTransaction',(req,res)=>{
-    const { senderAddress,recieverAddress,  amount } = req.body;
     console.log(req.body)
     //unconfirmedTransaction
     const transaction = req.body;
-    console.log(transaction)
+    console.log("kua?: "+!(transaction.id==='first transaction id'))
+    if(!(transaction.id=='first transaction id')){
+        console.log("LOL")
+        // console.log("FALSE: "+ec.keyFromPublic(transaction.senderAddress,'hex').verify("newTransaction.id",transaction.signature));
+        // console.log("TRUE: "+ec.keyFromPublic(transaction.senderAddress,'hex').verify(transaction.id,transaction.signature));
+        console.log(transaction)
+        console.log("VERIFIED?"+Wallet.verifySignature(transaction.senderAddress,transaction.signature,transaction.id))
+        if(Wallet.verifySignature(transaction.senderAddress,transaction.signature,transaction.id))
+        {
+            verifiedTransactions.push(transaction);
+            console.log(verifiedTransactions.length);
+            blockchain.addBlock(transaction);
+
+            broadcastChain();
+            saveTransactionLocal();
+            saveChainLocal();
+
+        }
+
+        //ec.keyFromPublic(transaction.senderAddress,'hex').verify(transaction.id,transaction.signature));
+    }else{
+        blockchain.addBlock(transaction);
+        broadcastChain();
+        saveTransactionLocal()
+        saveChainLocal();
+    }
 
 
 
 
-    saveChainLocal()
-    blockchain.addBlock(transaction);
-    broadcastChain();
-    unconfirmedTransactions.push(transaction);
-    saveChainLocal();
+
+
     res.redirect('/chain');
 });
 
@@ -351,7 +417,6 @@ app.post('/getMoney',(req,res)=>{
 
     let total = 0;
    let money= getUnspentTransactions(address);
-
     money.forEach(transaction =>{
         transaction.txOuts.forEach(out=>{
             if(out.address == address)
